@@ -9,6 +9,7 @@ import (
     "os"
     // "reflect"
     "encoding/json"	
+    "strconv"
 )
 
 type TicketData struct {
@@ -42,17 +43,19 @@ type ItemObject struct {
 type StubHubItem struct {
     ID int `json:"id"`
     Section string `json:"section"`
-    SectionID string `json:"sectionId"`
+    SectionID int `json:"sectionId"`
     SectionMapName string `json:"sectionMapName"`
     SectionType int `json:"sectionType"`
     Row string `json:"row"`
     SeatFrom string `json:"seatFrom"`
     SeatTo string `json:"@seatTo"`
     AvailableTickets int `json:"availableTickets"`
-    AvailableQuantities int `json:"availableQuantities"`
-    TicketClass string `json:"ticketClass"`
+    AvailableQuantities []int `json:"availableQuantities"`
+    TicketClass int `json:"ticketClass"`
     TicketClassName string `json:"ticketClassName"`
     BestSellingInSectionMessage SellingMessage `json:"bestSellingInSectionMessage"`
+    RawPrice float64 `json:"rawPrice"`
+    RawTicketPrice float64 `json:"rawTicketPrice"`
     Price string `json:"price"`
     PriceWithFees string `json:"priceWithFees"`
     ListingCurrencyCode string `json:"listingCurrencyCode"`
@@ -65,6 +68,10 @@ type SellingMessage struct {
     Disclaimer string `json:"disclaimer"`
     HasValue bool `json:"hasValue"`
     FeatureTrackingKey string `json:"featureTrackingKey"`
+}
+
+type AllStubHubData struct {
+    Events []StubHubTicketGrid
 }
 
 func parse(text string) (data []string) {
@@ -103,6 +110,12 @@ func parse(text string) (data []string) {
 }
 
 func visitPage(inputLink string) {
+    var mostProfitable []float64
+    currentMaxProfit := 0.0
+
+    mostProfitable.append(0.0)
+    mostProfitable.append(0.0)    
+
     url := inputLink
     fmt.Printf("HTML code of %s ...\n", url)
     client := &http.Client{}
@@ -158,7 +171,34 @@ func visitPage(inputLink string) {
         fmt.Println(err)
     }
 
-    fmt.Println(allData)
+    tempList := allData.Grid.Items
+
+    fmt.Println(len(tempList))
+
+    i = 0
+
+    for i < len(tempList) {
+        convertedString, err := strconv.Atoi(tempList[i].PriceWithFees[1:])
+        
+        if float64(convertedString) - tempList[i].rawPrice > currentMaxProfit {
+            currentMaxProfit = convertedString - tempList[i].rawPrice
+            mostProfitable[0] = tempList[i].rawPrice
+            mostProfitable[1] = float64(convertedString)
+        }
+
+        if err != nil {
+            fmt.Println(err)
+        }
+
+        fmt.Print(convertedString)
+        fmt.Print("raw price = $")
+        fmt.Print(tempList[i].RawPrice)
+        fmt.Print(" raw ticket price = $")
+        fmt.Print(tempList[i].RawTicketPrice)
+        fmt.Print(" ")
+        fmt.Println("price = " + tempList[i].Price + " price with fees = " + tempList[i].PriceWithFees)
+        i++
+    }
 }
 
 func main() {
@@ -236,5 +276,11 @@ func main() {
     // each ticket has the following information
     // section number, price, row, link to buy
 
-    visitPage(temp[0].URL)
+    i = 0
+
+    for i < len(temp) {
+        visitPage(temp[i].URL)
+        i++
+    }
+    
 }
