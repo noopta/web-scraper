@@ -1,0 +1,3 @@
+[92083:92083:0305/201623.481044:WARNING:chrome_main_delegate.cc(617)] This is Chrome version 110.0.5481.177 (not a warning)
+[92083:92083:0305/201623.543416:ERROR:ozone_platform_x11.cc(238)] Missing X server or $DISPLAY
+[92083:92083:0305/201623.543585:ERROR:env.cc(255)] The platform failed to initialize.  Exiting.

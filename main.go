@@ -110,11 +110,8 @@ func parse(text string) (data []string) {
 }
 
 func visitPage(inputLink string) {
-    var mostProfitable []float64
-    currentMaxProfit := 0.0
-
-    mostProfitable.append(0.0)
-    mostProfitable.append(0.0)    
+    mostProfitable := []float64{0.0, 0.0}
+    currentMinDistance := 10000.0
 
     url := inputLink
     fmt.Printf("HTML code of %s ...\n", url)
@@ -173,36 +170,46 @@ func visitPage(inputLink string) {
 
     tempList := allData.Grid.Items
 
-    fmt.Println(len(tempList))
-
     i = 0
+    // var sectionValue string
+    // var rowValue string
 
     for i < len(tempList) {
         convertedString, err := strconv.Atoi(tempList[i].PriceWithFees[1:])
         
-        if float64(convertedString) - tempList[i].rawPrice > currentMaxProfit {
-            currentMaxProfit = convertedString - tempList[i].rawPrice
-            mostProfitable[0] = tempList[i].rawPrice
+        if float64(convertedString) - tempList[i].RawPrice < currentMinDistance {
+            currentMinDistance = float64(convertedString) - tempList[i].RawPrice
+            mostProfitable[0] = tempList[i].RawPrice
             mostProfitable[1] = float64(convertedString)
+            // sectionValue = tempList[i].Section
+            // rowValue = tempList[i].Row
         }
 
         if err != nil {
             fmt.Println(err)
         }
 
-        fmt.Print(convertedString)
         fmt.Print("raw price = $")
         fmt.Print(tempList[i].RawPrice)
         fmt.Print(" raw ticket price = $")
         fmt.Print(tempList[i].RawTicketPrice)
         fmt.Print(" ")
-        fmt.Println("price = " + tempList[i].Price + " price with fees = " + tempList[i].PriceWithFees)
+        fmt.Println("price = " + tempList[i].Price + " price with fees = " + tempList[i].PriceWithFees + " " + tempList[i].Section)
         i++
     }
+    // fmt.Print("Section = " + sectionValue + " row = " + rowValue + " ")
+    // fmt.Print("The most profitable ticket = $")
+    // fmt.Print(currentMinDistance)
+    // fmt.Print(" raw ticket price = $")
+    // fmt.Print(mostProfitable[0])
+    // fmt.Print(" selling price with fees = $")
+    // fmt.Println(mostProfitable[1])
+    // fmt.Println()
 }
 
 func main() {
-    url := "https://www.stubhub.ca/toronto-raptors-tickets/performer/7549/"
+    // url := "https://www.stubhub.ca/toronto-raptors-tickets/performer/7549/"
+    url := "https://www.stubhub.ca/chicago-bulls-tickets/performer/2863/"
     // url := "stubhub.ca/milwaukee-bucks-milwaukee-tickets-1-17-2023/event/150337076/?quantity=1"
     fmt.Printf("HTML code of %s ...\n", url)
     client := &http.Client{}
@@ -234,7 +241,7 @@ func main() {
     i := 1
 
     for i < len(data) {
-        if strings.Contains(data[i], "at Toronto Raptors") {
+        if strings.Contains(data[i], "at Chicago Bulls") {
             data[i] = strings.ReplaceAll(data[i], " ", "")
             ioutil.WriteFile("data.txt", []byte(data[i]), 0644)
         }
