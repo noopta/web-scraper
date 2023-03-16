@@ -11,7 +11,6 @@ import (
     "os"
     // "reflect"
     "encoding/json"	
-    "strconv"
     openai "github.com/sashabaranov/go-openai"
 )
 
@@ -112,9 +111,7 @@ func parse(text string) (data []string) {
     }
 }
 
-func visitPage(inputLink string) []StubHubItem{
-    mostProfitable := []float64{0.0, 0.0}
-    currentMinDistance := 10000.0
+func visitPage(inputLink string) StubHubItem{
 
     url := inputLink
     fmt.Printf("HTML code of %s ...\n", url)
@@ -144,8 +141,8 @@ func visitPage(inputLink string) []StubHubItem{
     }
 
     data := parse(string(htmlString[:]))
-    row := "15"
-    section := "325"
+    row := "11"
+    section := "332"
 
     i := 0
 
@@ -179,34 +176,34 @@ func visitPage(inputLink string) []StubHubItem{
     // var sectionValue string
     // var rowValue string
 
-    for i < len(tempList) {
-        convertedString, err := strconv.Atoi(tempList[i].PriceWithFees[1:])
-        
-        if float64(convertedString) - tempList[i].RawPrice < currentMinDistance {
-            currentMinDistance = float64(convertedString) - tempList[i].RawPrice
-            mostProfitable[0] = tempList[i].RawPrice
-            mostProfitable[1] = float64(convertedString)
-            // sectionValue = tempList[i].Section
-            // rowValue = tempList[i].Row
-        }
-
-        fmt.Println(tempList[i].Section + " " + tempList[i].Row)
+    // for i = 0; i < len(urlsToVisit); i++ {
+    //     go func(i int) {
+    //         defer wg.Done()
+    //         visitPage(urlsToVisit[i])
+    //     }(i)
+    // }
+    
+    for i = 0; i < len(tempList); i++ {
+        fmt.Println(tempList[i].Section)
         if(tempList[i].Section == section && tempList[i].Row == row) {
             fmt.Println("Found ticket")
-            fmt.Println(tempList[i])
+            fmt.Println()
+            return tempList[i]
         }
 
         if err != nil {
             fmt.Println(err)
         }
-        i++
     }
 
-    return tempList
+    return StubHubItem{}
 }
 
 func callGPT() {
-	client := openai.NewClient("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")
+    fmt.Println("calling Chat GPT")
+    fmt.Println()
+    
+	client := openai.NewClient("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")
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
@@ -240,16 +237,19 @@ func main() {
     client := &http.Client{}
     req, err := http.NewRequest("GET", url, nil)
     if err != nil {
+        fmt.Println("err 1")
         panic(err)
     }
     req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36")
     resp, err := client.Do(req)
     if err != nil {
+        fmt.Println("err 2")
         panic(err)
     }
     defer resp.Body.Close()
     html, err := ioutil.ReadAll(resp.Body)
     if err != nil {
+        fmt.Println("err 3")
         panic(err)
     }
     // fmt.Printf("%s\n", html)
@@ -258,19 +258,30 @@ func main() {
     htmlString, err := ioutil.ReadFile("ticketText.txt")
 
     if err != nil {
+        fmt.Println("err 4")
         fmt.Println(err)
     }
 
     data := parse( string(htmlString[:]))
 
     i := 1
+    isFound := false
 
-    for i < len(data) {
-        if strings.Contains(data[i], "at Chicago Bulls") && strings.Contains(data[i], "Minnesota Timberwolves") {
+    for i = 0; i < len(data); i++ {
+        if strings.Contains(data[i], "Chicago Bulls") && strings.Contains(data[i], "Minnesota Timberwolves") && strings.Contains(data[i], "@graph"){
+            fmt.Println("found the link")
             data[i] = strings.ReplaceAll(data[i], " ", "")
             ioutil.WriteFile("data.txt", []byte(data[i]), 0644)
+            isFound = true
+            break
+        } else {
+            continue
         }
-        i++
+    }
+
+    if(!isFound) {
+        fmt.Println("RETURNING")
+        return
     }
 
     // OPEN AI API KEY = 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
@@ -278,6 +289,7 @@ func main() {
     fileText, err := os.ReadFile("data.txt")
 
     if err != nil {
+        fmt.Println("err 5")
         fmt.Println(err)
     }
 
@@ -288,6 +300,7 @@ func main() {
     err = json.Unmarshal([]byte(convertedString), &allData)
     if err != nil {
         // panic
+        fmt.Println("err 6")
         fmt.Println(err)
     }
 
@@ -295,8 +308,21 @@ func main() {
 
     i = 0
 
+    urlsToVisit := []string{}
+    isParking := false
+    
     for i < len(temp) {
-       temp[i].URL = "https://www.stubhub.ca" + temp[i].URL + "?quantity=1"
+        // take date as input
+        if isParking {
+            if strings.Contains(temp[i].URL, "3-17-2023") && strings.Contains(temp[i].URL, "parking-passes"){
+                urlsToVisit = append(urlsToVisit, "https://www.stubhub.ca" + temp[i].URL + "?quantity=1")
+            }
+        } else {
+            if strings.Contains(temp[i].URL, "3-17-2023") && !strings.Contains(temp[i].URL, "parking-passes"){
+                urlsToVisit = append(urlsToVisit, "https://www.stubhub.ca" + temp[i].URL + "?quantity=1")
+            }
+        }
+
         i++
     }
 
@@ -314,29 +340,20 @@ func main() {
     // https://www.stubhub.ca/chicago-bulls-chicago-tickets-3-15-2023/event/150341877/?quantity=1&listingId=6143848653&listingQty=
     // we get a list of tickets with the rows so just find the match with the same row and section 
 
-
-
-
-    // for i < len(temp) {
-    //     // visitPage(temp[i].URL)
-
-    //     go func(i int) {
-    //         defer wg.Done()
-    //         visitPage(temp[i].URL)
-    //     }(i)
-    //     i++
-    // }
-
     var wg sync.WaitGroup
-    wg.Add(len(temp))
 
-    for i = 0; i < len(temp); i++ {
+    wg.Add(len(urlsToVisit))
+    tempItem := StubHubItem{}
+    for i = 0; i < len(urlsToVisit); i++ {
+         
         go func(i int) {
             defer wg.Done()
-            visitPage(temp[i].URL)
+            tempItem = visitPage(urlsToVisit[i])
         }(i)
     }
-
     wg.Wait()
+
     fmt.Println("Visited all pages")
+
+    fmt.Println(tempItem.Section + " " + tempItem.Row + " " + tempItem.PriceWithFees)
 }
