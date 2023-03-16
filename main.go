@@ -1,6 +1,7 @@
 package main
 
 import (
+    "context"
     "fmt"
     "io/ioutil"
     "net/http"
@@ -10,6 +11,7 @@ import (
     // "reflect"
     "encoding/json"	
     "strconv"
+    openai "github.com/sashabaranov/go-openai"
 )
 
 type TicketData struct {
@@ -109,7 +111,7 @@ func parse(text string) (data []string) {
     }
 }
 
-func visitPage(inputLink string) {
+func visitPage(inputLink string) []StubHubItem{
     mostProfitable := []float64{0.0, 0.0}
     currentMinDistance := 10000.0
 
@@ -141,6 +143,8 @@ func visitPage(inputLink string) {
     }
 
     data := parse(string(htmlString[:]))
+    row := "15"
+    section := "325"
 
     i := 0
 
@@ -185,31 +189,52 @@ func visitPage(inputLink string) {
             // rowValue = tempList[i].Row
         }
 
+        fmt.Println(tempList[i].Section + " " + tempList[i].Row)
+        if(tempList[i].Section == section && tempList[i].Row == row) {
+            fmt.Println("Found ticket")
+            fmt.Println(tempList[i])
+        }
+
         if err != nil {
             fmt.Println(err)
         }
-
-        fmt.Print("raw price = $")
-        fmt.Print(tempList[i].RawPrice)
-        fmt.Print(" raw ticket price = $")
-        fmt.Print(tempList[i].RawTicketPrice)
-        fmt.Print(" ")
-        fmt.Println("price = " + tempList[i].Price + " price with fees = " + tempList[i].PriceWithFees + " " + tempList[i].Section)
         i++
     }
-    // fmt.Print("Section = " + sectionValue + " row = " + rowValue + " ")
-    // fmt.Print("The most profitable ticket = $")
-    // fmt.Print(currentMinDistance)
-    // fmt.Print(" raw ticket price = $")
-    // fmt.Print(mostProfitable[0])
-    // fmt.Print(" selling price with fees = $")
-    // fmt.Println(mostProfitable[1])
-    // fmt.Println()
+
+    return tempList
+}
+
+func callGPT() {
+	client := openai.NewClient("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")
+	resp, err := client.CreateChatCompletion(
+		context.Background(),
+		openai.ChatCompletionRequest{
+			Model: openai.GPT3Dot5Turbo,
+			Messages: []openai.ChatCompletionMessage{
+				{
+					Role:    openai.ChatMessageRoleUser,
+					Content: "Describe the view and quality of the seats at section 323 and row 15 for Chicago Bulls home games from 2021",
+				},
+			},
+		},
+	)
+
+	if err != nil {
+		fmt.Printf("ChatCompletion error: %v\n", err)
+		return
+	}
+
+	fmt.Println(resp.Choices[0].Message.Content)
 }
 
 func main() {
+
+    callGPT()
+    return
+
     // url := "https://www.stubhub.ca/toronto-raptors-tickets/performer/7549/"
     url := "https://www.stubhub.ca/chicago-bulls-tickets/performer/2863/"
+    //   url := "https://www.stubhub.ca/chicago-bulls-tickets/"
     // url := "stubhub.ca/milwaukee-bucks-milwaukee-tickets-1-17-2023/event/150337076/?quantity=1"
     fmt.Printf("HTML code of %s ...\n", url)
     client := &http.Client{}
@@ -241,12 +266,14 @@ func main() {
     i := 1
 
     for i < len(data) {
-        if strings.Contains(data[i], "at Chicago Bulls") {
+        if strings.Contains(data[i], "at Chicago Bulls") && strings.Contains(data[i], "Minnesota Timberwolves") {
             data[i] = strings.ReplaceAll(data[i], " ", "")
             ioutil.WriteFile("data.txt", []byte(data[i]), 0644)
         }
         i++
     }
+
+    // OPEN AI API KEY = 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
 
     fileText, err := os.ReadFile("data.txt")
 
@@ -284,10 +311,17 @@ func main() {
     // section number, price, row, link to buy
 
     i = 0
+    // https://www.stubhub.ca/chicago-bulls-chicago-tickets-3-15-2023/event/150341877/?quantity=1&listingId=6143848653&listingQty=
+    // we get a list of tickets with the rows so just find the match with the same row and section 
 
     for i < len(temp) {
         visitPage(temp[i].URL)
+
+        // Section string `json:"section"`
+        // SectionID int `json:"sectionId"`
+        // SectionMapName string `json:"sectionMapName"`
+        // SectionType int `json:"sectionType"`
+        // Row string `json:"row"`
         i++
     }
-    
 }
