@@ -2,6 +2,7 @@ package main
 
 import (
     "context"
+    "sync"
     "fmt"
     "io/ioutil"
     "net/http"
@@ -205,7 +206,7 @@ func visitPage(inputLink string) []StubHubItem{
 }
 
 func callGPT() {
-	client := openai.NewClient("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")
+	client := openai.NewClient("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")
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
@@ -229,8 +230,7 @@ func callGPT() {
 
 func main() {
 
-    callGPT()
-    return
+    go callGPT()
 
     // url := "https://www.stubhub.ca/toronto-raptors-tickets/performer/7549/"
     url := "https://www.stubhub.ca/chicago-bulls-tickets/performer/2863/"
@@ -314,14 +314,29 @@ func main() {
     // https://www.stubhub.ca/chicago-bulls-chicago-tickets-3-15-2023/event/150341877/?quantity=1&listingId=6143848653&listingQty=
     // we get a list of tickets with the rows so just find the match with the same row and section 
 
-    for i < len(temp) {
-        visitPage(temp[i].URL)
 
-        // Section string `json:"section"`
-        // SectionID int `json:"sectionId"`
-        // SectionMapName string `json:"sectionMapName"`
-        // SectionType int `json:"sectionType"`
-        // Row string `json:"row"`
-        i++
+
+
+    // for i < len(temp) {
+    //     // visitPage(temp[i].URL)
+
+    //     go func(i int) {
+    //         defer wg.Done()
+    //         visitPage(temp[i].URL)
+    //     }(i)
+    //     i++
+    // }
+
+    var wg sync.WaitGroup
+    wg.Add(len(temp))
+
+    for i = 0; i < len(temp); i++ {
+        go func(i int) {
+            defer wg.Done()
+            visitPage(temp[i].URL)
+        }(i)
     }
+
+    wg.Wait()
+    fmt.Println("Visited all pages")
 }
