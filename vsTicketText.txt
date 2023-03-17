@@ -1,0 +1,23 @@
+<htmllang="en">    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="description" content="px-captcha">
+        <title>Access to this page has been denied</title>
+        
+    </head>
+    <body>
+        <script>
+            window._pxAppId='PXbj5OofE8';
+            window._pxJsClientSrc='/bj5OofE8/init.js';
+            window._pxFirstPartyEnabled=true;
+            window._pxCustomLogo='/pxns/vs-brandmark.jpeg';
+            window._pxVid='';
+            window._pxUuid='e009801e-c50a-11ed-ade7-45477449414d';
+            window._pxHostUrl='/bj5OofE8/xhr';
+            window._pxBlockScript = '/bj5OofE8/captcha/bj5OofE8/captcha.js?a=c&u=e009801e-c50a-11ed-ade7-45477449414d&v=&m=0';
+            window._pxAltBlockScript = 'https://captcha.px-cloud.net/PXbj5OofE8/captcha.js?a=c&u=e009801e-c50a-11ed-ade7-45477449414d&v=&m=0';
+        </script>
+        <script src="https://www.vividseats.com/pxns/c.js"></script>
+        
+    </body>
+</html>

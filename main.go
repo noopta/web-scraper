@@ -2,6 +2,7 @@ package main
 
 import (
     "context"
+    "bufio"
     "sync"
     "fmt"
     "io/ioutil"
@@ -76,6 +77,13 @@ type AllStubHubData struct {
     Events []StubHubTicketGrid
 }
 
+var homeTeam string
+var awayTeam string
+var gameDate string
+var ticketQuantity string
+var sectionVal string
+var rowVal string
+
 func parse(text string) (data []string) {
 
     tkn := html.NewTokenizer(strings.NewReader(text))
@@ -141,8 +149,8 @@ func visitPage(inputLink string) StubHubItem{
     }
 
     data := parse(string(htmlString[:]))
-    row := "11"
-    section := "332"
+    // row := "11"
+    // section := "332"
 
     i := 0
 
@@ -173,19 +181,10 @@ func visitPage(inputLink string) StubHubItem{
     tempList := allData.Grid.Items
 
     i = 0
-    // var sectionValue string
-    // var rowValue string
-
-    // for i = 0; i < len(urlsToVisit); i++ {
-    //     go func(i int) {
-    //         defer wg.Done()
-    //         visitPage(urlsToVisit[i])
-    //     }(i)
-    // }
     
     for i = 0; i < len(tempList); i++ {
         fmt.Println(tempList[i].Section)
-        if(tempList[i].Section == section && tempList[i].Row == row) {
+        if(tempList[i].Section == sectionVal && tempList[i].Row == rowVal) {
             fmt.Println("Found ticket")
             fmt.Println()
             return tempList[i]
@@ -203,7 +202,7 @@ func callGPT() {
     fmt.Println("calling Chat GPT")
     fmt.Println()
     
-	client := openai.NewClient("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")
+	client := openai.NewClient("")
 	resp, err := client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
@@ -227,12 +226,58 @@ func callGPT() {
 
 func main() {
 
+    getVividSeatsTickets()
+
+    return 
+    fmt.Println("Enter the home team name: ")
+    scanner := bufio.NewScanner(os.Stdin)
+
+    if scanner.Scan() {
+        homeTeam = scanner.Text()
+    }
+
+    fmt.Println("Enter the away team name: ")
+
+    scanner = bufio.NewScanner(os.Stdin)
+
+    if scanner.Scan() {
+        awayTeam = scanner.Text()
+    }
+
+    fmt.Println("Enter the game date: ")
+
+    scanner = bufio.NewScanner(os.Stdin)
+
+    if scanner.Scan() {
+        gameDate = scanner.Text()
+    }
+
+    fmt.Println("Enter the section number: ")
+    scanner = bufio.NewScanner(os.Stdin)
+
+    if scanner.Scan() {
+        sectionVal = scanner.Text()
+    }
+
+    fmt.Println("Enter the row number: ")
+    scanner = bufio.NewScanner(os.Stdin)
+
+    if scanner.Scan() {
+        rowVal = scanner.Text()
+    }
+
+    fmt.Println("Enter the ticket quantity: ")
+    scanner = bufio.NewScanner(os.Stdin)
+
+    if scanner.Scan() {
+        ticketQuantity = scanner.Text()
+    }
+
+    fmt.Println(homeTeam + " " + awayTeam + " " + gameDate + " " + sectionVal + " " + rowVal + " " + ticketQuantity)
+
     go callGPT()
 
-    // url := "https://www.stubhub.ca/toronto-raptors-tickets/performer/7549/"
     url := "https://www.stubhub.ca/chicago-bulls-tickets/performer/2863/"
-    //   url := "https://www.stubhub.ca/chicago-bulls-tickets/"
-    // url := "stubhub.ca/milwaukee-bucks-milwaukee-tickets-1-17-2023/event/150337076/?quantity=1"
     fmt.Printf("HTML code of %s ...\n", url)
     client := &http.Client{}
     req, err := http.NewRequest("GET", url, nil)
@@ -268,9 +313,10 @@ func main() {
     isFound := false
 
     for i = 0; i < len(data); i++ {
-        if strings.Contains(data[i], "Chicago Bulls") && strings.Contains(data[i], "Minnesota Timberwolves") && strings.Contains(data[i], "@graph"){
+        if strings.Contains(data[i], homeTeam) && strings.Contains(data[i], awayTeam) && strings.Contains(data[i], "@graph"){
             fmt.Println("found the link")
             data[i] = strings.ReplaceAll(data[i], " ", "")
+            fmt.Println(data[i])
             ioutil.WriteFile("data.txt", []byte(data[i]), 0644)
             isFound = true
             break
@@ -310,16 +356,17 @@ func main() {
 
     urlsToVisit := []string{}
     isParking := false
-    
+
     for i < len(temp) {
         // take date as input
+
         if isParking {
-            if strings.Contains(temp[i].URL, "3-17-2023") && strings.Contains(temp[i].URL, "parking-passes"){
-                urlsToVisit = append(urlsToVisit, "https://www.stubhub.ca" + temp[i].URL + "?quantity=1")
+            if strings.Contains(temp[i].URL, gameDate) && strings.Contains(temp[i].URL, "parking-passes"){
+                urlsToVisit = append(urlsToVisit, "https://www.stubhub.ca" + temp[i].URL + "?quantity=" + ticketQuantity)
             }
         } else {
-            if strings.Contains(temp[i].URL, "3-17-2023") && !strings.Contains(temp[i].URL, "parking-passes"){
-                urlsToVisit = append(urlsToVisit, "https://www.stubhub.ca" + temp[i].URL + "?quantity=1")
+            if strings.Contains(temp[i].URL, gameDate) && !strings.Contains(temp[i].URL, "parking-passes"){
+                urlsToVisit = append(urlsToVisit, "https://www.stubhub.ca" + temp[i].URL + "?quantity=" + ticketQuantity)
             }
         }
 
@@ -356,4 +403,38 @@ func main() {
     fmt.Println("Visited all pages")
 
     fmt.Println(tempItem.Section + " " + tempItem.Row + " " + tempItem.PriceWithFees)
+}
+
+func getVividSeatsTickets() {
+    url := "https://www.vividseats.com/chicago-bulls-tickets--sports-nba-basketball/performer/161"
+    fmt.Printf("HTML code of %s ...\n", url)
+    client := &http.Client{}
+    req, err := http.NewRequest("GET", url, nil)
+    if err != nil {
+        fmt.Println("err 1")
+        panic(err)
+    }
+    req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.75 Safari/537.36")
+    resp, err := client.Do(req)
+    if err != nil {
+        fmt.Println("err 2")
+        panic(err)
+    }
+    defer resp.Body.Close()
+    html, err := ioutil.ReadAll(resp.Body)
+    if err != nil {
+        fmt.Println("err 3")
+        panic(err)
+    }
+    // fmt.Printf("%s\n", html)
+    ioutil.WriteFile("vsTicketText.txt", html, 0644)
+
+    // htmlString, err := ioutil.ReadFile("vsTicketText.txt")
+
+    // if err != nil {
+    //     fmt.Println("err 4")
+    //     fmt.Println(err)
+    // }
+
+    // data := parse( string(htmlString[:]))
 }
